@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ferramenta de Consciência Situacional para Aviação Agrícola</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Skies, Refined Grays and Blues -->
+    <!-- Application Structure Plan: A single-page application with a mobile-first design for field use. The core is an interactive "SA Preflight Checklist" with a three-state marking system (unmarked, positive, negative). Each state allows for comments to be recorded, a key feature for field data logging. The explanation of Situational Awareness (SA) is placed after the checklist and summary to provide context and background information once the user has engaged with the practical tool. The app's flow is: checklist -> summary -> SA intro -> about. This structure prioritizes immediate interaction with the tool, then provides a visual summary of the results, and finally presents the theoretical explanation for context and deeper understanding. This "learn by doing" approach is designed to be highly engaging. -->
+    <!-- Visualization & Content Choices: 1. Mobile-First Layout: Using responsive Tailwind classes for optimal usability on smartphones and tablets. 2. Interactive Checklist with 3-State Marking: Each checklist item can be toggled through three states (unmarked, positive, negative), indicated by distinct icons and styles. A comment field appears for both positive and negative markings to capture detailed observations. 3. Readiness Summary: A Chart.js Radar Chart displays the percentage of positively completed items per category, providing a clear visual summary of preparedness, which is easily readable on various screen sizes. These choices enhance the tool's utility for real-world application and data collection. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .info-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .checklist-item-container {
+            border-left-color: #cbd5e1; /* slate-300 */
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .checklist-item-container.checked {
+            background-color: #f0fdf4; /* light green */
+            border-left-color: #22c55e; /* green-500 */
+        }
+        .checklist-item-container.negative {
+            background-color: #fff1f2; /* light red */
+            border-left-color: #ef4444; /* red-500 */
+        }
+        .comment-field {
+            opacity: 0;
+            max-height: 0;
+            transition: opacity 0.3s ease, max-height 0.5s ease-in-out;
+        }
+        .comment-field.visible {
+            opacity: 1;
+            max-height: 200px;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        @media print {
+            body {
+                background-color: #fff;
+                color: #000;
+            }
+            .no-print {
+                display: none !important;
+            }
+            h1 {
+                font-size: 24px;
+                color: #000;
+            }
+            .accordion-content {
+                max-height: none !important;
+            }
+            .checklist-item-container {
+                page-break-inside: avoid;
+            }
+            footer {
+                display: block !important;
+                margin-top: 2rem;
+                text-align: center;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+
+        <header class="no-print text-center mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Ferramenta de Consciência Situacional</h1>
+            <p class="mt-2 text-lg text-slate-600">Um instrumento com origem na dissertação de Mestrado em Aviation Safety de Matheus Guerra (ITA)</p>
+        </header>
+
+        <main>
+
+            <!-- Section 1: Interactive SA Preflight Checklist -->
+            <section id="checklist" class="mb-8 print:mb-0">
+                <h2 class="no-print text-2xl font-bold text-center mb-8 text-slate-900">1. Check-list Interativo<br>Pré-Voo</h2>
+                <h2 class="print:block hidden text-2xl font-bold text-center mb-4">Check-list Interativo Pré-Voo</h2>
+                <div id="accordion-container" class="space-y-4">
+                    <!-- Accordion items will be injected here by JS -->
+                </div>
+            </section>
+            
+            <div class="no-print text-center mt-8 mb-16">
+                <button id="print-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105">
+                    Imprimir Checklist
+                </button>
+            </div>
+
+            <!-- Section 2: Situational Awareness Score/Summary -->
+            <section id="summary" class="no-print bg-white p-4 rounded-lg shadow-sm mb-16">
+                <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">2. Resumo da sua Prontidão</h2>
+                <p id="summary-text" class="text-justify text-slate-600 max-w-3xl mx-auto mb-8">
+                    Pontos de melhoria identificados pelo checklist pré-voo.
+                </p>
+                <div class="chart-container">
+                    <canvas id="saRadarChart"></canvas>
+                </div>
+            </section>
+            
+            <!-- Section 3: Introduction to Situational Awareness -->
+            <section id="intro" class="no-print mb-16 bg-white p-4 rounded-lg shadow-sm">
+                <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">3. O que é Consciência Situacional (SA)?</h2>
+                <p class="text-justify text-slate-600 max-w-3xl mx-auto mb-8">
+                    A Consciência Situacional (SA) é a percepção dos elementos no ambiente, a compreensão de seu significado e a projeção de seu status no futuro próximo. É um pilar fundamental para a tomada de decisão segura em ambientes complexos como a aviação agrícola. Esta ferramenta foi projetada para aprimorar a SA do piloto antes de cada voo.
+                </p>
+                <div class="flex flex-col md:flex-row justify-center items-center gap-4 text-center">
+                    <div class="sa-level-card border-t-4 border-blue-500 p-4 rounded-md shadow-md bg-white w-full md:w-1/3">
+                        <h3 class="font-bold text-lg text-blue-600">Nível 1: Percepção</h3>
+                        <p class="text-sm text-slate-600 mt-2">Identificar o status, atributos e dinâmicas dos elementos relevantes no ambiente. O que está acontecendo agora?</p>
+                    </div>
+                    <div class="text-2xl text-blue-500 hidden md:block">&rarr;</div>
+                    <div class="sa-level-card border-t-4 border-indigo-500 p-4 rounded-md shadow-md bg-white w-full md:w-1/3">
+                        <h3 class="font-bold text-lg text-indigo-600">Nível 2: Compreensão</h3>
+                        <p class="text-sm text-slate-600 mt-2">Sintetizar os elementos da Percepção para entender como eles impactam seus objetivos. O que isso significa?</p>
+                    </div>
+                    <div class="text-2xl text-indigo-500 hidden md:block">&rarr;</div>
+                    <div class="sa-level-card border-t-4 border-purple-500 p-4 rounded-md shadow-md bg-white w-full md:w-1/3">
+                        <h3 class="font-bold text-lg text-purple-600">Nível 3: Projeção</h3>
+                        <p class="text-sm text-slate-600 mt-2">Projetar as ações futuras dos elementos no ambiente. O que pode acontecer a seguir?</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: About the Project -->
+            <footer class="no-print text-center mt-16 pt-8 border-t border-slate-200">
+                <p class="text-slate-600">Esta ferramenta é uma representação interativa da pesquisa conduzida por</p>
+                <p class="text-slate-600"><strong>Matheus Guerra</strong></p>
+                <p class="text-sm text-slate-500 mt-2">Aviation Safety M.Sc.</p>
+                <p class="text-sm text-slate-500">Instituto Tecnológico de Aeronáutica (ITA) - 2025</p>
+            </footer>
+
+        </main>
+    </div>
+
+    <script>
+        const checklistData = [
+            {
+                category: 'Health Check',
+                id: 'health',
+                title: 'Saúde do Piloto',
+                items: [
+                    { id: 'health-1', text: 'Desjejum adequado?', info: 'Uma nutrição adequada é crucial para a função cognitiva e para evitar a hipoglicemia durante o voo.' },
+                    { id: 'health-2', text: 'Água potável a bordo?', info: 'A hidratação mantém o desempenho físico e mental, prevenindo os efeitos da desidratação.' },
+                    { id: 'health-3', text: 'Sente sinais de fadiga?', info: 'A fadiga degrada o julgamento, o tempo de reação e a tomada de decisão. Reconhecer seus sinais é o primeiro passo para mitigá-la.' },
+                    { id: 'health-4', text: 'Intoxicação auto-provocada nas últimas 24-48h?', info: 'O consumo de álcool ou outras substâncias pode ter efeitos residuais que comprometem a segurança do voo.' },
+                    { id: 'health-5', text: 'Uniforme e EPIs adequados?', info: 'Equipamentos de Proteção Individual corretos protegem contra exposição a produtos químicos e outros riscos ocupacionais.' }
+                ]
+            },
+            {
+                category: 'Climate Check',
+                id: 'climate',
+                title: 'Meteorologia',
+                items: [
+                    { id: 'climate-1', text: 'Temperatura adequada?', info: 'Temperaturas extremas afetam o desempenho do piloto e da aeronave, além de influenciarem a evaporação e deriva do produto.' },
+                    { id: 'climate-2', text: 'Umidade Relativa adequada?', info: 'A umidade afeta a taxa de evaporação das gotas, impactando a eficácia da aplicação e o potencial de deriva.' },
+                    { id: 'climate-3', text: 'Velocidade do Vento adequada?', info: 'O vento é o principal fator que causa a deriva. Voar dentro dos limites de vento recomendados é essencial.' },
+                    { id: 'climate-4', text: 'Pressão atmosférica adequada?', info: 'A pressão afeta a performance do motor e a aerodinâmica, influenciando o desempenho geral do voo.' },
+                    { id: 'climate-5', text: 'Previsão de mudanças súbitas?', info: 'Verificar a previsão de curto prazo ajuda a evitar ser pego de surpresa por condições meteorológicas adversas, como rajadas de vento ou chuva.' }
+                ]
+            },
+            {
+                category: 'Envelope Check',
+                id: 'envelope',
+                title: 'Envelope de Aplicação',
+                items: [
+                    { id: 'envelope-1', text: 'Altura de Voo verificada?', info: 'Manter a altura de voo correta é fundamental para garantir a deposição adequada e minimizar a deriva.' },
+                    { id: 'envelope-2', text: 'Bicos de pulverização verificados?', info: 'Bicos corretos e limpos garantem o tamanho de gota e o padrão de pulverização desejados.' },
+                    { id: 'envelope-3', text: 'Pressão do sistema ajustada?', info: 'A pressão afeta diretamente o tamanho das gotas. Pressão excessiva pode gerar gotas muito finas, suscetíveis à deriva.' },
+                    { id: 'envelope-4', text: 'Volume de calda ajustado?', info: 'O volume correto garante a cobertura e a eficácia do produto aplicado na lavoura.' },
+                    { id: 'envelope-5', text: 'Composição da calda otimizada (água, adjuvantes)?', info: 'Adjuvantes podem modificar as propriedades da calda para reduzir a evaporação e a deriva, melhorando a deposição.' }
+                ]
+            },
+            {
+                category: 'Risk Management Check',
+                id: 'risk',
+                title: 'Gerenciamento de Risco',
+                items: [
+                    { id: 'risk-1', text: 'Produto utilizado é tóxico?', info: 'Conhecer a toxicidade do produto é vital para manuseio seguro e para o planejamento de contramedidas.' },
+                    { id: 'risk-2', text: 'Equipe treinada para contramedidas em caso de exposição?', info: 'A prontidão da equipe de solo para agir em uma emergência de contaminação é um componente crítico da segurança.' },
+                    { id: 'risk-3', text: 'Áreas sensíveis (escolas, rios, apiários) identificadas no entorno?', info: 'A consciência sobre áreas sensíveis próximas é crucial para planejar o voo de forma a evitar a deriva e a contaminação.' },
+                    { id: 'risk-4', text: 'Plano de voo considera zonas de "não aplicação" e buffers?', info: 'Estabelecer zonas de buffer claras é uma defesa essencial contra a deriva para áreas não-alvo.' },
+                    { id: 'risk-5', text: 'Comunicação com a equipe de solo estabelecida?', info: 'Uma comunicação clara e eficaz com a equipe em terra é vital para a coordenação e segurança da operação.' }
+                ]
+            }
+        ];
+
+        const state = {
+            scores: {
+                health: 0,
+                climate: 0,
+                envelope: 0,
+                risk: 0,
+            },
+            itemStates: {},
+            comments: {},
+            totalItems: 0
+        };
+
+        let saRadarChart;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const accordionContainer = document.getElementById('accordion-container');
+            
+            checklistData.forEach(category => {
+                const categoryElement = document.createElement('div');
+                categoryElement.className = 'bg-white rounded-lg shadow-sm border border-slate-200';
+                
+                const totalInCategory = category.items.length;
+                state.totalItems += totalInCategory;
+                
+                category.items.forEach(item => {
+                    state.itemStates[item.id] = 'unmarked';
+                    state.comments[item.id] = "";
+                });
+
+                let itemsHTML = '';
+                category.items.forEach(item => {
+                    itemsHTML += `
+                        <div id="item-container-${item.id}" class="checklist-item-container p-4 border-l-4">
+                            <div class="flex justify-between items-center cursor-pointer" data-itemid="${item.id}" data-categoryid="${category.id}">
+                                <span class="text-slate-700 font-medium">${item.text}</span>
+                                <span class="status-icon text-slate-400 text-xl">&#9711;</span>
+                            </div>
+                            <div class="info-panel mt-2 px-2 text-sm text-sky-800">
+                                <p class="text-justify"><strong>Justificativa:</strong> ${item.info}</p>
+                            </div>
+                            <div class="comment-field mt-4 px-2">
+                                <textarea placeholder="Adicionar comentário..." class="w-full p-2 border border-slate-300 rounded-md text-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"></textarea>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                categoryElement.innerHTML = `
+                    <div id="header-${category.id}" class="p-4 flex justify-between items-center cursor-pointer">
+                        <h3 class="text-lg font-bold text-slate-800">${category.title}</h3>
+                        <div class="flex items-center gap-4">
+                            <span id="progress-${category.id}" class="text-sm font-semibold text-slate-500">0 / ${totalInCategory}</span>
+                            <span class="transform transition-transform duration-300">&#9662;</span>
+                        </div>
+                    </div>
+                    <div class="accordion-content border-t border-slate-200">
+                        <div class="divide-y divide-slate-200">
+                            ${itemsHTML}
+                        </div>
+                    </div>
+                `;
+                accordionContainer.appendChild(categoryElement);
+            });
+
+            setupEventListeners();
+            initializeChart();
+
+            document.getElementById('print-button').addEventListener('click', () => {
+                window.print();
+            });
+        });
+
+        function setupEventListeners() {
+            checklistData.forEach(category => {
+                const header = document.getElementById(`header-${category.id}`);
+                const content = header.nextElementSibling;
+                const arrow = header.querySelector('.transform');
+
+                header.addEventListener('click', () => {
+                    const isOpen = content.style.maxHeight;
+                    document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
+                    document.querySelectorAll('.transform').forEach(a => a.style.transform = '');
+                    
+                    if (!isOpen || isOpen === "0px") {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        arrow.style.transform = 'rotate(180deg)';
+                    }
+                });
+
+                category.items.forEach(item => {
+                    const itemContainer = document.getElementById(`item-container-${item.id}`);
+                    const itemDiv = itemContainer.querySelector('div[data-itemid]');
+                    const infoPanel = itemContainer.querySelector('.info-panel');
+                    const commentField = itemContainer.querySelector('.comment-field');
+                    const textarea = commentField.querySelector('textarea');
+                    
+                    itemDiv.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        
+                        let currentState = state.itemStates[item.id];
+                        let newState;
+
+                        if (currentState === 'unmarked') {
+                            newState = 'checked';
+                        } else if (currentState === 'checked') {
+                            newState = 'negative';
+                        } else {
+                            newState = 'unmarked';
+                        }
+
+                        state.itemStates[item.id] = newState;
+
+                        const statusIcon = itemDiv.querySelector('.status-icon');
+                        itemContainer.classList.remove('checked', 'negative');
+                        statusIcon.className = 'status-icon text-xl';
+                        infoPanel.style.maxHeight = null;
+                        commentField.classList.remove('visible');
+                        
+                        if (newState === 'checked') {
+                            itemContainer.classList.add('checked');
+                            statusIcon.innerHTML = '&#9989;';
+                            statusIcon.classList.add('text-green-500');
+                            infoPanel.style.maxHeight = infoPanel.scrollHeight + "px";
+                            commentField.classList.add('visible');
+                            textarea.value = state.comments[item.id];
+                            textarea.focus();
+                        } else if (newState === 'negative') {
+                            itemContainer.classList.add('negative');
+                            statusIcon.innerHTML = '&#10060;';
+                            statusIcon.classList.add('text-red-500');
+                            infoPanel.style.maxHeight = infoPanel.scrollHeight + "px";
+                            commentField.classList.add('visible');
+                            textarea.value = state.comments[item.id];
+                            textarea.focus();
+                        } else { // 'unmarked'
+                            statusIcon.innerHTML = '&#9711;';
+                            statusIcon.classList.add('text-slate-400');
+                            textarea.value = '';
+                            state.comments[item.id] = '';
+                        }
+                        
+                        updateScore(category.id);
+                    });
+
+                    textarea.addEventListener('input', (e) => {
+                        state.comments[item.id] = e.target.value;
+                    });
+                });
+            });
+        }
+
+        function updateScore(categoryId) {
+            const itemsInCategory = checklistData.find(c => c.id === categoryId).items;
+            const checkedCount = itemsInCategory.filter(item => state.itemStates[item.id] === 'checked').length;
+            state.scores[categoryId] = checkedCount;
+            
+            const totalInCategory = itemsInCategory.length;
+            const progressSpan = document.getElementById(`progress-${categoryId}`);
+            progressSpan.textContent = `${checkedCount} / ${totalInCategory}`;
+
+            if(checkedCount === totalInCategory) {
+                 progressSpan.classList.remove('text-slate-500');
+                 progressSpan.classList.add('text-green-600');
+            } else {
+                 progressSpan.classList.add('text-slate-500');
+                 progressSpan.classList.remove('text-green-600');
+            }
+
+            updateChart();
+        }
+
+        function initializeChart() {
+            const ctx = document.getElementById('saRadarChart').getContext('2d');
+            const labels = checklistData.map(c => c.title);
+            const data = {
+                labels: labels,
+                datasets: [{
+                    label: 'Nível de Prontidão',
+                    data: [0, 0, 0, 0],
+                    fill: true,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    pointBackgroundColor: 'rgb(59, 130, 246)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(59, 130, 246)'
+                }]
+            };
+
+            saRadarChart = new Chart(ctx, {
+                type: 'radar',
+                data: data,
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100,
+                            ticks: {
+                                stepSize: 25,
+                                backdropColor: 'rgba(255, 255, 255, 0.75)',
+                                callback: function(value) {
+                                    return value + '%'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.formattedValue + '%' + ' - ' + context.chart.data.labels[context.dataIndex];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            const percentages = checklistData.map(category => {
+                const score = state.scores[category.id];
+                const total = category.items.length;
+                return total > 0 ? (score / total) * 100 : 0;
+            });
+            
+            saRadarChart.data.datasets[0].data = percentages;
+            saRadarChart.update();
+
+            const totalChecked = Object.values(state.itemStates).filter(s => s === 'checked').length;
+            const totalNegative = Object.values(state.itemStates).filter(s => s === 'negative').length;
+            const totalItems = state.totalItems;
+
+            if (totalChecked + totalNegative === totalItems) {
+                if (totalNegative === 0) {
+                     document.getElementById('summary-text').textContent = "Checklist completo! Você demonstrou um excelente nível de consciência situacional e preparação. Continue mantendo este alto padrão de segurança em todas as operações.";
+                } else {
+                    document.getElementById('summary-text').textContent = "Checklist completo com observações! O gráfico reflete a sua prontidão, mas não se esqueça de revisar os itens marcados como não verificados antes de prosseguir.";
+                }
+            } else if (totalChecked + totalNegative > 0) {
+                 document.getElementById('summary-text').textContent = "Continue preenchendo o checklist. Cada item verificado aumenta a segurança e a eficácia da sua operação.";
+            } else {
+                 document.getElementById('summary-text').textContent = "Complete o checklist para gerar um resumo visual do seu nível de prontidão para o voo. Este gráfico ajuda a identificar áreas que podem exigir mais atenção.";
+            }
+        }
+    </script>
+</body>
+</html>
