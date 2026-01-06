@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Ferramenta de Consciência Situacional para Aviação Agrícola</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
+        .info-panel { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
+        .checklist-item-container { border-left-color: #cbd5e1; transition: background-color 0.2s ease, border-color 0.2s ease; }
+        .checklist-item-container.checked { background-color: #f0fdf4; border-left-color: #22c55e; }
+        .checklist-item-container.negative { background-color: #fff1f2; border-left-color: #ef4444; }
+        .comment-field { opacity: 0; max-height: 0; transition: opacity 0.25s ease, max-height 0.35s ease; }
+        .comment-field.visible { opacity: 1; max-height: 180px; padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        @media print {
+            body { background-color: #fff; color: #000; }
+            .no-print { display: none !important; }
+            .accordion-content { max-height: none !important; }
+            .comment-field { opacity: 1 !important; max-height: none !important; }
+            .checklist-item-container { page-break-inside: avoid; }
+            footer { display: block !important; margin-top: 2rem; text-align: center; font-size: 12px; }
+        }
+        .visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px,1px,1px,1px); white-space: nowrap; border:0; padding:0; margin:-1px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="no-print text-center mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Ferramenta de Consciência Situacional</h1>
+            <p class="mt-2 text-lg text-slate-600">Um instrumento com origem na dissertação de Mestrado em Aviation Safety de Matheus Guerra (ITA)</p>
+        </header>
+
+        <main>
+            <section id="checklist" class="mb-8 print:mb-0">
+                <h2 class="no-print text-2xl font-bold text-center mb-8 text-slate-900">1. Check-list Interativo<br>Pré-Voo</h2>
+                <h2 class="print:block hidden text-2xl font-bold text-center mb-4">Check-list Interativo Pré-Voo</h2>
+                <div id="accordion-container" class="space-y-4" aria-live="polite">
+                    <!-- Categories rendered here -->
+                </div>
+            </section>
+
+            <div class="no-print text-center mt-8 mb-16 flex justify-center gap-4">
+                <button id="print-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105">
+                    Imprimir Checklist
+                </button>
+
+                <button id="reset-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105" title="Redefinir checklist (limpa seleções e comentários)">
+                    Redefinir Checklist
+                </button>
+            </div>
+
+            <section id="summary" class="no-print bg-white p-4 rounded-lg shadow-sm mb-16">
+                <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">2. Resumo da sua Prontidão</h2>
+                <p id="summary-text" class="text-justify text-slate-600 max-w-3xl mx-auto mb-8" aria-live="polite">
+                    Pontos de melhoria identificados pelo checklist pré-voo.
+                </p>
+                <div class="chart-container">
+                    <canvas id="saRadarChart" aria-label="Gráfico radar de prontidão" role="img"></canvas>
+                </div>
+            </section>
+
+            <section id="intro" class="no-print mb-16 bg-white p-4 rounded-lg shadow-sm">
+                <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">3. O que é Consciência Situacional (SA)?</h2>
+                <p class="text-justify text-slate-600 max-w-3xl mx-auto mb-8">
+                    A Consciência Situacional (SA) é a percepção dos elementos no ambiente, a compreensão de seu significado e a projeção de seu status no futuro próximo. É um pilar fundamental para operações seguras em aviação agrícola.
+                </p>
+                <div class="flex flex-col md:flex-row justify-center items-center gap-4 text-center">
+                    <div class="sa-level-card border-t-4 border-blue-500 p-4 rounded-md shadow-md bg-white w-full md:w-1/3">
+                        <h3 class="font-bold text-lg text-blue-600">Nível 1: Percepção</h3>
+                        <p class="text-sm text-slate-600 mt-2">Identificar o status, atributos e dinâmicas dos elementos relevantes no ambiente. O que está acontecendo agora?</p>
+                    </div>
+                    <div class="text-2xl text-blue-500 hidden md:block">&rarr;</div>
+                    <div class="sa-level-card border-t-4 border-indigo-500 p-4 rounded-md shadow-md bg-white w-full md:w-1/3">
+                        <h3 class="font-bold text-lg text-indigo-600">Nível 2: Compreensão</h3>
+                        <p class="text-sm text-slate-600 mt-2">Sintetizar os elementos da percepção para entender como eles impactam seus objetivos. O que isso significa?</p>
+                    </div>
+                    <div class="text-2xl text-indigo-500 hidden md:block">&rarr;</div>
+                    <div class="sa-level-card border-t-4 border-purple-500 p-4 rounded-md shadow-md bg-white w-full md:w-1/3">
+                        <h3 class="font-bold text-lg text-purple-600">Nível 3: Projeção</h3>
+                        <p class="text-sm text-slate-600 mt-2">Projetar as ações futuras dos elementos no ambiente. O que pode acontecer a seguir?</p>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="no-print text-center mt-16 pt-8 border-t border-slate-200">
+                <p class="text-slate-600">Esta ferramenta é uma representação interativa da pesquisa conduzida por</p>
+                <p class="text-slate-600"><strong>Matheus Guerra</strong></p>
+                <p class="text-sm text-slate-500 mt-2">Aviation Safety M.Sc.</p>
+                <p class="text-sm text-slate-500">Instituto Tecnológico de Aeronáutica (ITA) - 2025</p>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // Data (cleaned, no truncations). Keep text content trusted in this repo.
+        const checklistData = [
+            {
+                category: 'Health Check',
+                id: 'health',
+                title: 'Saúde do Piloto',
+                items: [
+                    { id: 'health-1', text: 'Desjejum adequado?', info: 'Uma nutrição adequada é crucial para a função cognitiva e para evitar hipoglicemia durante o voo.' },
+                    { id: 'health-2', text: 'Água potável a bordo?', info: 'A hidratação mantém o desempenho físico e mental, prevenindo os efeitos da desidratação.' },
+                    { id: 'health-3', text: 'Sente sinais de fadiga?', info: 'A fadiga degrada o julgamento, o tempo de reação e a tomada de decisão. Reconheça sinais e cancele se necessário.' },
+                    { id: 'health-4', text: 'Consumo de álcool ou drogas nas últimas 24–48h?', info: 'Consumo recente pode apresentar efeitos residuais que comprometem a segurança do voo.' },
+                    { id: 'health-5', text: 'Uniforme e EPIs adequados?', info: 'Equipamentos de Proteção Individual adequados protegem contra exposição a produtos químicos e riscos ocupacionais.' }
+                ]
+            },
+            {
+                category: 'Climate Check',
+                id: 'climate',
+                title: 'Meteorologia',
+                items: [
+                    { id: 'climate-1', text: 'Temperatura adequada?', info: 'Temperaturas extremas afetam o desempenho do piloto e da aeronave e podem alterar a evaporação e a deriva.' },
+                    { id: 'climate-2', text: 'Umidade relativa adequada?', info: 'A umidade influencia a taxa de evaporação das gotas, afetando a eficácia e a deriva.' },
+                    { id: 'climate-3', text: 'Velocidade do vento dentro dos limites?', info: 'O vento é o principal fator de deriva. Verifique direção e velocidade nos níveis relevantes.' },
+                    { id: 'climate-4', text: 'Pressão atmosférica verificada?', info: 'A pressão influencia a performance do motor e da aeronave, afetando desempenho e segurança.' },
+                    { id: 'climate-5', text: 'Previsão de mudanças súbitas checada?', info: 'Monitorar previsões de curto prazo evita ser pego de surpresa por condições adversas.' }
+                ]
+            },
+            {
+                category: 'Envelope Check',
+                id: 'envelope',
+                title: 'Envelope de Aplicação',
+                items: [
+                    { id: 'envelope-1', text: 'Altura de voo verificada?', info: 'Manter a altura correta é crítico para deposição adequada e redução de deriva.' },
+                    { id: 'envelope-2', text: 'Bicos de pulverização verificados e limpos?', info: 'Bicos corretos e limpos garantem o padrão de pulverização desejado.' },
+                    { id: 'envelope-3', text: 'Pressão do sistema ajustada?', info: 'A pressão afeta o tamanho das gotas; pressão inadequada pode gerar deriva ou cobertura insuficiente.' },
+                    { id: 'envelope-4', text: 'Volume de calda ajustado?', info: 'O volume correto assegura cobertura e eficácia dos produtos aplicados.' },
+                    { id: 'envelope-5', text: 'Composição da calda otimizada (água, adjuvantes)?', info: 'Adjuvantes podem modificar a calda para reduzir evaporação e deriva.' }
+                ]
+            },
+            {
+                category: 'Risk Management Check',
+                id: 'risk',
+                title: 'Gerenciamento de Risco',
+                items: [
+                    { id: 'risk-1', text: 'Produto utilizado com toxicidade conhecida?', info: 'Conheça a toxicidade e riscos do produto para planejamento de ações de mitigação.' },
+                    { id: 'risk-2', text: 'Equipe treinada para contramedidas?', info: 'A prontidão da equipe de solo para agir em emergências de exposição é essencial.' },
+                    { id: 'risk-3', text: 'Áreas sensíveis identificadas no entorno?', info: 'Identifique escolas, rios, apiários e outras áreas vulneráveis antes de iniciar a aplicação.' },
+                    { id: 'risk-4', text: 'Plano de voo considera zonas de não aplicação e buffers?', info: 'Estabeleça zonas de buffer para proteger áreas sensíveis e reduzir deriva.' },
+                    { id: 'risk-5', text: 'Comunicação com a equipe de solo estabelecida?', info: 'Comunicação clara e eficaz com solo é vital para coordenação e segurança.' }
+                ]
+            }
+        ];
+
+        // Application state and persistence
+        const STORAGE_KEY = 'saChecklistState:v1';
+        const defaultState = {
+            itemStates: {},   // 'unmarked' | 'checked' | 'negative'
+            comments: {}
+        };
+
+        let state = loadState();
+        let saRadarChart = null;
+
+        // Ensure all expected item keys exist in state
+        function ensureStateShape() {
+            checklistData.forEach(cat => {
+                cat.items.forEach(item => {
+                    if (!(item.id in state.itemStates)) state.itemStates[item.id] = 'unmarked';
+                    if (!(item.id in state.comments)) state.comments[item.id] = '';
+                });
+            });
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.warn('Não foi possível salvar o estado no localStorage.', e);
+            }
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) return JSON.parse(raw);
+            } catch (e) {
+                console.warn('Erro ao carregar estado do localStorage', e);
+            }
+            return JSON.parse(JSON.stringify(defaultState));
+        }
+
+        // Rendering helpers
+        function createCategoryElement(category) {
+            const container = document.createElement('div');
+            container.className = 'bg-white rounded-lg shadow-sm border border-slate-200';
+
+            const header = document.createElement('div');
+            header.className = 'p-4 flex justify-between items-center';
+            // Accessible button for accordion header
+            const headerBtn = document.createElement('button');
+            headerBtn.type = 'button';
+            headerBtn.className = 'flex-1 text-left';
+            headerBtn.setAttribute('aria-expanded', 'false');
+            headerBtn.setAttribute('aria-controls', `content-${category.id}`);
+            headerBtn.id = `header-btn-${category.id}`;
+
+            const title = document.createElement('h3');
+            title.className = 'text-lg font-bold text-slate-800';
+            title.textContent = category.title;
+            headerBtn.appendChild(title);
+
+            const headerActions = document.createElement('div');
+            headerActions.className = 'flex items-center gap-4';
+
+            const progress = document.createElement('span');
+            progress.id = `progress-${category.id}`;
+            progress.className = 'text-sm font-semibold text-slate-500';
+            progress.textContent = '0 / ' + category.items.length;
+
+            const chevron = document.createElement('span');
+            chevron.className = 'transform transition-transform duration-300 text-slate-400';
+            chevron.textContent = '▾';
+
+            headerActions.appendChild(progress);
+            headerActions.appendChild(chevron);
+
+            header.appendChild(headerBtn);
+            header.appendChild(headerActions);
+            container.appendChild(header);
+
+            const content = document.createElement('div');
+            content.className = 'accordion-content border-t border-slate-200';
+            content.id = `content-${category.id}`;
+            content.setAttribute('aria-hidden', 'true');
+
+            const list = document.createElement('div');
+            list.className = 'divide-y divide-slate-200';
+
+            category.items.forEach(item => {
+                const itemEl = createItemElement(item, category.id);
+                list.appendChild(itemEl);
+            });
+
+            content.appendChild(list);
+            container.appendChild(content);
+
+            // Accordion toggle
+            headerBtn.addEventListener('click', () => {
+                const isOpen = headerBtn.getAttribute('aria-expanded') === 'true';
+                // Close all other accordions (optional)
+                document.querySelectorAll('.accordion-content').forEach(c => {
+                    c.style.maxHeight = null;
+                    c.setAttribute('aria-hidden', 'true');
+                    const btn = document.querySelector(`#${c.id.replace('content-', 'header-btn-')}`);
+                    if (btn) btn.setAttribute('aria-expanded', 'false');
+                    const ch = c.parentElement.querySelector('.transform');
+                    if (ch) ch.style.transform = '';
+                });
+
+                if (!isOpen) {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    content.setAttribute('aria-hidden', 'false');
+                    headerBtn.setAttribute('aria-expanded', 'true');
+                    chevron.style.transform = 'rotate(180deg)';
+                } else {
+                    content.style.maxHeight = null;
+                    content.setAttribute('aria-hidden', 'true');
+                    headerBtn.setAttribute('aria-expanded', 'false');
+                    chevron.style.transform = '';
+                }
+            });
+
+            return container;
+        }
+
+        function createItemElement(item, categoryId) {
+            const container = document.createElement('div');
+            container.id = `item-container-${item.id}`;
+            container.className = 'checklist-item-container p-4 border-l-4';
+
+            // button for the item main row
+            const rowBtn = document.createElement('button');
+            rowBtn.type = 'button';
+            rowBtn.className = 'w-full flex justify-between items-center text-left';
+            rowBtn.dataset.itemid = item.id;
+            rowBtn.dataset.categoryid = categoryId;
+            rowBtn.setAttribute('aria-pressed', state.itemStates[item.id] === 'checked' ? 'true' : 'false');
+
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'text-slate-700 font-medium';
+            labelSpan.textContent = item.text;
+
+            const statusSpan = document.createElement('span');
+            statusSpan.className = 'status-icon text-slate-400 text-xl';
+            statusSpan.setAttribute('aria-hidden', 'true');
+            statusSpan.textContent = stateSymbol(state.itemStates[item.id]);
+
+            rowBtn.appendChild(labelSpan);
+            rowBtn.appendChild(statusSpan);
+
+            // info panel
+            const infoPanel = document.createElement('div');
+            infoPanel.className = 'info-panel mt-2 px-2 text-sm text-sky-800';
+            const infoP = document.createElement('p');
+            infoP.className = 'text-justify';
+            const strong = document.createElement('strong');
+            strong.textContent = 'Justificativa: ';
+            infoP.appendChild(strong);
+            const infoText = document.createElement('span');
+            infoText.textContent = item.info;
+            infoP.appendChild(infoText);
+            infoPanel.appendChild(infoP);
+
+            // comment field with label
+            const commentWrap = document.createElement('div');
+            commentWrap.className = 'comment-field mt-4 px-2';
+            if (state.itemStates[item.id] === 'unmarked') {
+                commentWrap.classList.remove('visible');
+            } else {
+                commentWrap.classList.add('visible');
+            }
+
+            const commentLabel = document.createElement('label');
+            commentLabel.className = 'visually-hidden';
+            commentLabel.setAttribute('for', `comment-${item.id}`);
+            commentLabel.textContent = `Comentário para ${item.text}`;
+
+            const textarea = document.createElement('textarea');
+            textarea.id = `comment-${item.id}`;
+            textarea.placeholder = 'Adicionar comentário...';
+            textarea.className = 'w-full p-2 border border-slate-300 rounded-md text-sm focus:border-blue-500 focus:ring focus:ring-blue-200';
+            textarea.value = state.comments[item.id] || '';
+            textarea.rows = 3;
+            textarea.dataset.itemid = item.id;
+
+            commentWrap.appendChild(commentLabel);
+            commentWrap.appendChild(textarea);
+
+            container.appendChild(rowBtn);
+            container.appendChild(infoPanel);
+            container.appendChild(commentWrap);
+
+            // initialize visual state
+            applyVisualState(container, statusSpan, infoPanel, commentWrap, state.itemStates[item.id]);
+
+            return container;
+        }
+
+        function stateSymbol(s) {
+            if (s === 'checked') return '✅';
+            if (s === 'negative') return '❌';
+            return '◯';
+        }
+
+        function applyVisualState(container, statusSpan, infoPanel, commentWrap, stateValue) {
+            container.classList.remove('checked', 'negative');
+            statusSpan.className = 'status-icon text-xl';
+            if (stateValue === 'checked') {
+                container.classList.add('checked');
+                statusSpan.textContent = '✅';
+                statusSpan.classList.add('text-green-500');
+                infoPanel.style.maxHeight = infoPanel.scrollHeight + 'px';
+                commentWrap.classList.add('visible');
+            } else if (stateValue === 'negative') {
+                container.classList.add('negative');
+                statusSpan.textContent = '❌';
+                statusSpan.classList.add('text-red-500');
+                infoPanel.style.maxHeight = infoPanel.scrollHeight + 'px';
+                commentWrap.classList.add('visible');
+            } else {
+                statusSpan.textContent = '◯';
+                statusSpan.classList.add('text-slate-400');
+                infoPanel.style.maxHeight = null;
+                commentWrap.classList.remove('visible');
+            }
+
+            // update aria-pressed on the row button
+            const rowBtn = container.querySelector('button[data-itemid]');
+            if (rowBtn) rowBtn.setAttribute('aria-pressed', stateValue === 'checked' ? 'true' : 'false');
+
+            // update textarea value from state
+            const ta = container.querySelector('textarea');
+            if (ta) ta.value = state.comments[container.id.replace('item-container-', '')] || '';
+        }
+
+        // Update a single item's UI after state changes
+        function updateItemUI(itemId) {
+            const container = document.getElementById(`item-container-${itemId}`);
+            if (!container) return;
+            const statusSpan = container.querySelector('.status-icon');
+            const infoPanel = container.querySelector('.info-panel');
+            const commentWrap = container.querySelector('.comment-field');
+            applyVisualState(container, statusSpan, infoPanel, commentWrap, state.itemStates[itemId]);
+            const ta = container.querySelector('textarea');
+            if (ta) ta.value = state.comments[itemId] || '';
+        }
+
+        // Build UI
+        document.addEventListener('DOMContentLoaded', () => {
+            ensureStateShape();
+
+            const accordionContainer = document.getElementById('accordion-container');
+            accordionContainer.innerHTML = ''; // clear
+
+            checklistData.forEach(cat => {
+                const catEl = createCategoryElement(cat);
+                accordionContainer.appendChild(catEl);
+            });
+
+            // Event delegation for item buttons and comment input
+            accordionContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-itemid]');
+                if (!btn) return;
+                const itemId = btn.dataset.itemid;
+                toggleItemState(itemId);
+            });
+
+            accordionContainer.addEventListener('input', (e) => {
+                const ta = e.target;
+                if (ta.tagName.toLowerCase() !== 'textarea') return;
+                const itemId = ta.dataset.itemid;
+                if (!itemId) return;
+                state.comments[itemId] = ta.value;
+                saveState();
+            });
+
+            document.getElementById('print-button').addEventListener('click', () => window.print());
+
+            // Reset button logic
+            document.getElementById('reset-button').addEventListener('click', () => {
+                const confirmed = window.confirm('Redefinir o checklist irá limpar todas as seleções e comentários. Deseja continuar?');
+                if (!confirmed) return;
+                // Clear state to defaults
+                state = JSON.parse(JSON.stringify(defaultState));
+                ensureStateShape();
+                saveState();
+
+                // Update all item UIs
+                checklistData.forEach(cat => {
+                    cat.items.forEach(item => updateItemUI(item.id));
+                });
+
+                // Update scores, chart and summary
+                updateAllScoresAndUI();
+            });
+
+            initializeChart();
+            updateAllScoresAndUI();
+        });
+
+        // Toggle state cycle: unmarked -> checked -> negative -> unmarked
+        function toggleItemState(itemId) {
+            const current = state.itemStates[itemId] || 'unmarked';
+            const next = current === 'unmarked' ? 'checked' : (current === 'checked' ? 'negative' : 'unmarked');
+            state.itemStates[itemId] = next;
+
+            // If resetting to unmarked, also clear comment
+            if (next === 'unmarked') {
+                state.comments[itemId] = '';
+            }
+
+            updateItemUI(itemId);
+
+            updateAllScoresAndUI();
+            saveState();
+        }
+
+        function updateAllScoresAndUI() {
+            // Update per-category progress
+            checklistData.forEach(cat => {
+                const total = cat.items.length;
+                const checkedCount = cat.items.filter(it => state.itemStates[it.id] === 'checked').length;
+                const progressSpan = document.getElementById(`progress-${cat.id}`);
+                if (progressSpan) {
+                    progressSpan.textContent = `${checkedCount} / ${total}`;
+                    if (checkedCount === total) {
+                        progressSpan.classList.remove('text-slate-500');
+                        progressSpan.classList.add('text-green-600');
+                    } else {
+                        progressSpan.classList.add('text-slate-500');
+                        progressSpan.classList.remove('text-green-600');
+                    }
+                }
+            });
+
+            // Update chart
+            updateChart();
+
+            // Update summary text
+            const totalChecked = Object.values(state.itemStates).filter(s => s === 'checked').length;
+            const totalNegative = Object.values(state.itemStates).filter(s => s === 'negative').length;
+            const totalItems = checklistData.reduce((sum, c) => sum + c.items.length, 0);
+
+            const summary = document.getElementById('summary-text');
+            if (totalChecked + totalNegative === totalItems && totalItems > 0) {
+                if (totalNegative === 0) {
+                    summary.textContent = "Checklist completo! Você demonstrou um excelente nível de consciência situacional e preparação. Continue mantendo estas práticas.";
+                } else {
+                    summary.textContent = "Checklist completo com observações. Revise os itens marcados como negativos e tome as ações necessárias antes do voo.";
+                }
+            } else if (totalChecked + totalNegative > 0) {
+                summary.textContent = "Continue preenchendo o checklist. Cada item verificado aumenta a segurança e a eficácia da sua operação.";
+            } else {
+                summary.textContent = "Complete o checklist para gerar um resumo visual do seu nível de prontidão para o voo. Este gráfico ajuda a identificar áreas para melhoria.";
+            }
+        }
+
+        // Chart.js
+        function initializeChart() {
+            const ctx = document.getElementById('saRadarChart').getContext('2d');
+            const labels = checklistData.map(c => c.title);
+            const data = {
+                labels,
+                datasets: [{
+                    label: 'Nível de Prontidão',
+                    data: labels.map(() => 0),
+                    fill: true,
+                    backgroundColor: 'rgba(59, 130, 246, 0.18)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    pointBackgroundColor: 'rgb(59, 130, 246)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(59, 130, 246)'
+                }]
+            };
+
+            saRadarChart = new Chart(ctx, {
+                type: 'radar',
+                data,
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { display: true },
+                            suggestedMin: 0,
+                            suggestedMax: 100,
+                            ticks: {
+                                stepSize: 25,
+                                backdropColor: 'rgba(255,255,255,0.75)',
+                                callback: function(value) { return value + '%'; }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.formattedValue + '%' + ' - ' + context.chart.data.labels[context.dataIndex];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            updateChart();
+        }
+
+        function updateChart() {
+            if (!saRadarChart) return;
+            const percentages = checklistData.map(category => {
+                const total = category.items.length;
+                const score = category.items.filter(item => state.itemStates[item.id] === 'checked').length;
+                return total > 0 ? Math.round((score / total) * 100) : 0;
+            });
+
+            saRadarChart.data.datasets[0].data = percentages;
+            saRadarChart.update();
+        }
+
+    </script>
+</body>
+</html>
