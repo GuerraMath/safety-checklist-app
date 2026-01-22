@@ -47,6 +47,6 @@ Este repositório é o primeiro módulo de um ecossistema de segurança maior. A
 [ ] Histórico: Integração com banco de dados PostgreSQL para análise histórica de tendências de risco.
 
 👨‍💻 Autor
-Matheus Guerra – M.Sc. em Aviation Safety (ITA) e Desenvolvedor Backend focado em sistemas críticos. LinkedIn | GitHub
+Matheus Guerra – M.Sc. em Aviation Safety (ITA) e Desenvolvedor Backend focado em sistemas críticos. [LinkedIn](https://linkedin.com/in/guerramatheus) | [GitHub](https://github.com/GuerraMath)
 
 Disclaimer: Este software é uma ferramenta de apoio à decisão e deve ser utilizado como complemento aos Manuais de Operações (SOP) e regulamentações da ANAC/EASA/FAA.
