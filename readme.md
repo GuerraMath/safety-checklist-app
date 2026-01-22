@@ -1,5 +1,7 @@
 Aviation Safety Management System - Situational Awareness (SA) Tool
+
 📌 Sobre o Projeto
+
 Esta ferramenta é uma implementação técnica de uma metodologia de Gerenciamento de Segurança Operacional, baseada em pesquisa de Mestrado realizada no ITA (Instituto Tecnológico de Aeronáutica). Trata-se de uma Single Page Application (SPA) projetada para mitigar falhas cognitivas e elevar a Consciência Situacional (SA) em operações críticas de aviação agrícola.
 
 O sistema transpõe conceitos complexos de Aviation Safety para uma interface funcional, permitindo que o operador realize uma análise preditiva de riscos antes de cada missão.
