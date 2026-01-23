@@ -569,7 +569,74 @@ document.getElementById('save-db-button').addEventListener('click', async () => 
         alert("❌ Erro de conexão: Certifique-se que o backend Java está rodando na porta 8081.");
     }
 });
+        let riskChart; // Variável global para evitar duplicidade de gráficos
+
+async function carregarHistorico() {
+    try {
+        const response = await fetch("http://localhost:8081/api/v1/safety/history");
+        const dados = await response.json();
         
+        // Inicializa contadores para o Dashboard
+        let alto = 0, medio = 0, baixo = 0;
+        const tbody = document.getElementById('history-table-body');
+        tbody.innerHTML = ''; 
+
+        // Processa os dados e popula a tabela
+        dados.reverse().forEach(v => {
+            // Contagem para o Dashboard
+            if(v.riskLevel === 'ALTO') alto++;
+            else if(v.riskLevel === 'MÉDIO') medio++;
+            else baixo++;
+
+            const data = new Date(v.dateTime).toLocaleString('pt-BR');
+            const cor = v.riskLevel === 'ALTO' ? 'text-red-600' : 
+                        v.riskLevel === 'MÉDIO' ? 'text-yellow-600' : 'text-green-600';
+            
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-50 border-b border-slate-100">
+                    <td class="p-4">${data}</td>
+                    <td class="p-4 font-bold ${cor}">${v.riskLevel}</td>
+                    <td class="p-4 text-center text-slate-500">
+                        ${v.healthScore} | ${v.weatherScore} | ${v.aircraftScore} | ${v.missionScore}
+                    </td>
+                </tr>`;
+        });
+
+        // Atualiza os cartões numéricos no Dashboard
+        document.getElementById('total-missions').innerText = dados.length;
+        document.getElementById('high-risk-count').innerText = alto;
+        document.getElementById('mid-risk-count').innerText = medio;
+        document.getElementById('low-risk-count').innerText = baixo;
+
+        // Desenha o gráfico de pizza (Doughnut)
+        renderizarGraficoPizza(baixo, medio, alto);
+
+    } catch (e) {
+        console.error("Erro ao carregar Dashboard:", e);
+    }
+}
+
+// Função auxiliar para o gráfico do Dashboard
+function renderizarGraficoPizza(b, m, a) {
+    const ctx = document.getElementById('riskDistChart').getContext('2d');
+    if (riskChart) riskChart.destroy(); // Limpa o gráfico anterior
+
+    riskChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Baixo', 'Médio', 'Alto'],
+            datasets: [{
+                data: [b, m, a],
+                backgroundColor: ['#16a34a', '#ca8a04', '#dc2626'],
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+}
     </script>
 </body>
 </html>
