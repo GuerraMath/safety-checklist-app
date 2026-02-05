@@ -5,155 +5,910 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Ferramenta de Consciência Situacional para Aviação Agrícola</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
-        @media (min-width: 768px) { .chart-container { height: 400px; } }
-        .checklist-item-container { border-left-color: #cbd5e1; transition: background-color 0.2s ease, border-color 0.2s ease; }
-        .checklist-item-container.checked { background-color: #f0fdf4; border-left-color: #22c55e; }
-        .checklist-item-container.negative { background-color: #fff1f2; border-left-color: #ef4444; }
-        .comment-field { opacity: 1; padding-top: 0.75rem; padding-bottom: 0.75rem; }
-        .info-panel { padding: 0.5rem; margin-top: 0.5rem; }
-        @media print {
-            body { background-color: #fff; color: #000; }
-            .no-print { display: none !important; }
-            .checklist-item-container { page-break-inside: avoid; }
-            footer { display: block !important; margin-top: 2rem; text-align: center; font-size: 12px; }
+        :root {
+            /* Neo-Brutalist Color Palette */
+            --bg-primary: #FFFEF0;
+            --bg-secondary: #F5F3E7;
+            --text-primary: #1a1a1a;
+            --text-secondary: #4a4a4a;
+
+            --accent-yellow: #FFE135;
+            --accent-blue: #3B82F6;
+            --accent-green: #10B981;
+            --accent-red: #EF4444;
+            --accent-purple: #8B5CF6;
+            --accent-orange: #F97316;
+            --accent-pink: #EC4899;
+            --accent-cyan: #06B6D4;
+
+            --border-color: #1a1a1a;
+            --border-width: 4px;
+            --border-radius: 16px;
+
+            --shadow-brutal: 6px 6px 0px #1a1a1a;
+            --shadow-brutal-hover: 8px 8px 0px #1a1a1a;
+            --shadow-brutal-active: 2px 2px 0px #1a1a1a;
+
+            --glow-green: 0 0 20px rgba(16, 185, 129, 0.5);
+            --glow-red: 0 0 20px rgba(239, 68, 68, 0.5);
+            --glow-blue: 0 0 20px rgba(59, 130, 246, 0.5);
+            --glow-yellow: 0 0 20px rgba(255, 225, 53, 0.6);
         }
-        .visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px,1px,1px,1px); white-space: nowrap; border:0; padding:0; margin:-1px; }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--bg-primary);
+            background-image:
+                radial-gradient(circle at 25px 25px, #e5e3d7 2px, transparent 0),
+                radial-gradient(circle at 75px 75px, #e5e3d7 2px, transparent 0);
+            background-size: 100px 100px;
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 1rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        /* ============================================
+           HEADER - Neo Brutalist Style
+           ============================================ */
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--accent-yellow);
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-brutal);
+        }
+
+        header h1 {
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+        }
+
+        header p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* ============================================
+           SECTION TITLES
+           ============================================ */
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: var(--accent-blue);
+            color: white;
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-brutal);
+        }
+
+        /* ============================================
+           CATEGORY CARDS - Accordion Style
+           ============================================ */
+        .category-card {
+            background: white;
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-brutal);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        .category-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--shadow-brutal-hover);
+        }
+
+        .category-header {
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: default;
+        }
+
+        .category-header.health { background: linear-gradient(135deg, #fecaca, #fef2f2); }
+        .category-header.climate { background: linear-gradient(135deg, #bfdbfe, #eff6ff); }
+        .category-header.envelope { background: linear-gradient(135deg, #bbf7d0, #f0fdf4); }
+        .category-header.risk { background: linear-gradient(135deg, #fde68a, #fefce8); }
+
+        .category-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .category-icon {
+            font-size: 1.5rem;
+        }
+
+        .category-progress {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .category-progress.complete {
+            background: var(--accent-green);
+            color: white;
+            box-shadow: var(--glow-green);
+        }
+
+        .category-content {
+            padding: 0.5rem;
+        }
+
+        /* ============================================
+           CHECKLIST ITEMS - Touch Friendly
+           ============================================ */
+        .checklist-item {
+            background: var(--bg-secondary);
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+            margin: 0.75rem;
+            padding: 1rem;
+            transition: all 0.15s ease;
+        }
+
+        .checklist-item:hover {
+            transform: translateX(4px);
+        }
+
+        .checklist-item.checked {
+            background: linear-gradient(135deg, #d1fae5, #ecfdf5);
+            border-color: var(--accent-green);
+            box-shadow: var(--glow-green);
+        }
+
+        .checklist-item.negative {
+            background: linear-gradient(135deg, #fee2e2, #fef2f2);
+            border-color: var(--accent-red);
+            box-shadow: var(--glow-red);
+        }
+
+        .item-button {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: white;
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            text-align: left;
+            transition: all 0.1s ease;
+            min-height: 60px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .item-button:hover {
+            background: var(--accent-yellow);
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0px var(--border-color);
+        }
+
+        .item-button:active {
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0px var(--border-color);
+        }
+
+        .item-text {
+            flex: 1;
+            padding-right: 1rem;
+            line-height: 1.4;
+        }
+
+        .status-badge {
+            font-size: 2rem;
+            min-width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+            transition: all 0.15s ease;
+        }
+
+        .checklist-item.checked .status-badge {
+            background: var(--accent-green);
+            box-shadow: var(--glow-green);
+        }
+
+        .checklist-item.negative .status-badge {
+            background: var(--accent-red);
+            box-shadow: var(--glow-red);
+        }
+
+        /* Info Panel */
+        .info-panel {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #e0f2fe, #f0f9ff);
+            border: 3px solid var(--accent-blue);
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
+
+        .info-panel strong {
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        /* Comment Field */
+        .comment-section {
+            margin-top: 1rem;
+        }
+
+        .comment-label {
+            display: block;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .comment-textarea {
+            width: 100%;
+            padding: 1rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+            background: white;
+            resize: vertical;
+            min-height: 80px;
+            transition: all 0.15s ease;
+        }
+
+        .comment-textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: var(--glow-blue);
+        }
+
+        .comment-textarea::placeholder {
+            color: #999;
+        }
+
+        /* ============================================
+           CONTROL BUTTONS - Big & Touch Friendly
+           ============================================ */
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0 3rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.1s ease;
+            min-height: 60px;
+            min-width: 180px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:hover {
+            transform: translate(-3px, -3px);
+            box-shadow: var(--shadow-brutal-hover);
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: var(--shadow-brutal-active);
+        }
+
+        .btn-print {
+            background: var(--accent-blue);
+            color: white;
+            box-shadow: var(--shadow-brutal);
+        }
+
+        .btn-print:hover {
+            background: #2563eb;
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.6), var(--shadow-brutal-hover);
+        }
+
+        .btn-save {
+            background: var(--accent-green);
+            color: white;
+            box-shadow: var(--shadow-brutal);
+        }
+
+        .btn-save:hover {
+            background: #059669;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.6), var(--shadow-brutal-hover);
+        }
+
+        .btn-reset {
+            background: var(--accent-red);
+            color: white;
+            box-shadow: var(--shadow-brutal);
+        }
+
+        .btn-reset:hover {
+            background: #dc2626;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.6), var(--shadow-brutal-hover);
+        }
+
+        /* ============================================
+           SUMMARY SECTION
+           ============================================ */
+        .summary-card {
+            background: white;
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-brutal);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-text {
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 2rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 350px;
+            margin: 0 auto;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        /* ============================================
+           DASHBOARD KPIs
+           ============================================ */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: white;
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-brutal);
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.1s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--shadow-brutal-hover);
+        }
+
+        .kpi-card.total { border-left: 8px solid var(--accent-purple); }
+        .kpi-card.high { border-left: 8px solid var(--accent-red); }
+        .kpi-card.mid { border-left: 8px solid var(--accent-orange); }
+        .kpi-card.low { border-left: 8px solid var(--accent-green); }
+
+        .kpi-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-card.total .kpi-label { color: var(--accent-purple); }
+        .kpi-card.high .kpi-label { color: var(--accent-red); }
+        .kpi-card.mid .kpi-label { color: var(--accent-orange); }
+        .kpi-card.low .kpi-label { color: var(--accent-green); }
+
+        .kpi-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .kpi-card.total .kpi-value { color: var(--accent-purple); }
+        .kpi-card.high .kpi-value { color: var(--accent-red); }
+        .kpi-card.mid .kpi-value { color: var(--accent-orange); }
+        .kpi-card.low .kpi-value { color: var(--accent-green); }
+
+        /* Risk Distribution Chart Card */
+        .chart-card {
+            background: white;
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-brutal);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .donut-container {
+            height: 280px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* ============================================
+           HISTORY TABLE
+           ============================================ */
+        .history-card {
+            background: white;
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-brutal);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        .history-table thead {
+            background: var(--border-color);
+            color: white;
+        }
+
+        .history-table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.8rem;
+        }
+
+        .history-table td {
+            padding: 1rem;
+            border-bottom: 2px solid var(--bg-secondary);
+        }
+
+        .history-table tbody tr:hover {
+            background: var(--accent-yellow);
+        }
+
+        .risk-badge {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            border: 3px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .risk-badge.alto {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .risk-badge.medio {
+            background: var(--accent-orange);
+            color: white;
+        }
+
+        .risk-badge.baixo {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .scores-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* ============================================
+           INFO SECTION - SA Levels
+           ============================================ */
+        .info-section {
+            background: white;
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-brutal);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-section p {
+            text-align: center;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 2rem;
+        }
+
+        .sa-levels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .sa-card {
+            background: var(--bg-secondary);
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.1s ease;
+        }
+
+        .sa-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 0 var(--border-color);
+        }
+
+        .sa-card.level-1 { border-top: 6px solid var(--accent-blue); }
+        .sa-card.level-2 { border-top: 6px solid var(--accent-purple); }
+        .sa-card.level-3 { border-top: 6px solid var(--accent-pink); }
+
+        .sa-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .sa-card.level-1 h3 { color: var(--accent-blue); }
+        .sa-card.level-2 h3 { color: var(--accent-purple); }
+        .sa-card.level-3 h3 { color: var(--accent-pink); }
+
+        .sa-card p {
+            font-size: 0.9rem;
+            margin: 0;
+            text-align: left;
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 2rem;
+            background: var(--border-color);
+            color: white;
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--border-radius);
+        }
+
+        footer p {
+            margin: 0.25rem 0;
+        }
+
+        footer strong {
+            color: var(--accent-yellow);
+        }
+
+        /* ============================================
+           PRINT STYLES
+           ============================================ */
+        @media print {
+            body {
+                background: white !important;
+                background-image: none !important;
+                padding: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .category-card,
+            .checklist-item,
+            .summary-card {
+                box-shadow: none !important;
+                break-inside: avoid;
+            }
+
+            header {
+                background: white !important;
+                box-shadow: none !important;
+            }
+
+            footer {
+                display: block !important;
+                background: white !important;
+                color: black !important;
+                margin-top: 2rem;
+            }
+
+            footer strong {
+                color: black !important;
+            }
+        }
+
+        /* ============================================
+           RESPONSIVE ADJUSTMENTS
+           ============================================ */
+        @media (max-width: 640px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            header {
+                padding: 1.5rem 1rem;
+            }
+
+            .section-title {
+                font-size: 1.25rem;
+                padding: 0.75rem;
+            }
+
+            .category-header {
+                flex-direction: column;
+                gap: 0.75rem;
+                text-align: center;
+            }
+
+            .button-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                min-width: auto;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .kpi-value {
+                font-size: 2rem;
+            }
+
+            .sa-levels {
+                grid-template-columns: 1fr;
+            }
+
+            .history-table {
+                font-size: 0.8rem;
+            }
+
+            .history-table th,
+            .history-table td {
+                padding: 0.75rem 0.5rem;
+            }
+        }
+
+        /* Accessibility */
+        .visually-hidden {
+            position: absolute !important;
+            height: 1px;
+            width: 1px;
+            overflow: hidden;
+            clip: rect(1px, 1px, 1px, 1px);
+            white-space: nowrap;
+            border: 0;
+            padding: 0;
+            margin: -1px;
+        }
+
+        /* Focus states for accessibility */
+        .item-button:focus,
+        .btn:focus,
+        .comment-textarea:focus {
+            outline: 4px solid var(--accent-yellow);
+            outline-offset: 2px;
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body>
 
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
-        <header class="no-print text-center mb-12">
-            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Ferramenta de Consciência Situacional</h1>
-            <p class="mt-2 text-lg text-slate-600">Um instrumento com origem na dissertação de Mestrado em Aviation Safety de Matheus Guerra (ITA)</p>
+    <div class="container">
+        <header class="no-print">
+            <h1>Ferramenta de Consciência Situacional</h1>
+            <p>Instrumento com origem na dissertação de Mestrado em Aviation Safety de Matheus Guerra (ITA)</p>
         </header>
 
         <main>
+            <!-- CHECKLIST SECTION -->
             <section id="checklist" class="mb-8 print:mb-0">
-                <h2 class="no-print text-2xl font-bold text-center mb-8 text-slate-900">1. Check-list Interativo<br>Pré-Voo</h2>
-                <h2 class="print:block hidden text-2xl font-bold text-center mb-4">Check-list Interativo Pré-Voo</h2>
-                <div id="accordion-container" class="space-y-6" aria-live="polite">
-                    <!-- Categories rendered here -->
-                </div>
-            </section>
-            
-<div class="no-print text-center mt-8 mb-16 flex justify-center gap-4">
-    <button id="print-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105">
-        Imprimir Checklist
-    </button>
-
-    <button id="save-db-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105">
-        Finalizar e Salvar
-    </button>
-
-    <button id="reset-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105">
-        Redefinir Checklist
-    </button>
-</div> 
-       
-            <section id="summary" class="no-print bg-white p-4 rounded-lg shadow-sm mb-16">
-                <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">2. Resumo da sua Prontidão</h2>
-                <p id="summary-text" class="text-justify text-slate-600 max-w-3xl mx-auto mb-8" aria-live="polite">
-                    Pontos de melhoria identificados pelo checklist pré-voo.
-                </p>
-                <div class="chart-container">
-                    <canvas id="saRadarChart" aria-label="Gráfico radar de prontidão" role="img"></canvas>
+                <h2 class="section-title no-print">1. Check-list Interativo Pré-Voo</h2>
+                <h2 class="print:block hidden section-title" style="display: none;">Check-list Interativo Pré-Voo</h2>
+                <div id="accordion-container" aria-live="polite">
+                    <!-- Categories rendered here by JS -->
                 </div>
             </section>
 
-            <section id="dashboard" class="no-print mb-8">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-slate-500">
-            <p class="text-sm text-slate-500 uppercase font-bold">Total de Missões</p>
-            <h3 id="total-missions" class="text-3xl font-black text-slate-800">0</h3>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-red-500">
-            <p class="text-sm text-red-500 uppercase font-bold">Alertas (Risco Alto)</p>
-            <h3 id="high-risk-count" class="text-3xl font-black text-red-600">0</h3>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-yellow-500">
-            <p class="text-sm text-yellow-500 uppercase font-bold">Atenção (Médio)</p>
-            <h3 id="mid-risk-count" class="text-3xl font-black text-yellow-600">0</h3>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
-            <p class="text-sm text-green-500 uppercase font-bold">Operação Normal</p>
-            <h3 id="low-risk-count" class="text-3xl font-black text-green-600">0</h3>
-        </div>
-    </div>
+            <!-- CONTROL BUTTONS -->
+            <div class="button-group no-print">
+                <button id="print-button" class="btn btn-print">
+                    📄 Imprimir PDF
+                </button>
+                <button id="save-db-button" class="btn btn-save">
+                    💾 Finalizar e Salvar
+                </button>
+                <button id="reset-button" class="btn btn-reset">
+                    🔄 Redefinir Checklist
+                </button>
+            </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-bold mb-4 text-slate-800">Distribuição de Risco Operacional</h3>
-        <div style="height: 250px; display: flex; justify-content: center;">
-            <canvas id="riskDistChart"></canvas>
-        </div>
-    </div>
-            </section>
-            
-            <section id="history" class="no-print bg-white p-6 rounded-lg shadow-sm mb-16">
-    <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">3. Histórico de Missões</h2>
-    <div class="overflow-x-auto">
-        <table class="min-w-full text-sm text-left">
-            <thead class="bg-slate-50 text-slate-600 uppercase font-medium">
-                <tr>
-                    <th class="p-4">Data/Hora</th>
-                    <th class="p-4">Piloto</th> <th class="p-4 text-center">Risco</th>
-                </tr>
-            </thead>
-            <tbody id="history-table-body" class="divide-y divide-slate-100">
-                </tbody>
-        </table>
-    </div>
-            </section>
-            
-            <section id="intro" class="no-print mb-16 bg-white p-4 rounded-lg shadow-sm">
-                <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">4. O que é Consciência Situacional (SA)?</h2>
-                <p class="text-justify text-slate-600 max-w-3xl mx-auto mb-8">
-                    A Consciência Situacional (SA) é a percepção dos elementos no ambiente, a compreensão de seu significado e a projeção de seu status no futuro próximo. É um pilar fundamental para operações seguras em aviação agrícola.
-                </p>
-                <div class="flex flex-col md:flex-row justify-center items-center gap-4 text-center">
-                    <div class="sa-level-card border-t-4 border-blue-500 p-4 rounded-md shadow-md bg-white w-full md:w-1/3">
-                        <h3 class="font-bold text-lg text-blue-600">Nível 1: Percepção</h3>
-                        <p class="text-sm text-slate-600 mt-2">Identificar o status, atributos e dinâmicas dos elementos relevantes no ambiente. O que está acontecendo agora?</p>
-                    </div>
-                    <div class="text-2xl text-blue-500 hidden md:block">&rarr;</div>
-                    <div class="sa-level-card border-t-4 border-indigo-500 p-4 rounded-md shadow-md bg-white w-full md:w-1/3">
-                        <h3 class="font-bold text-lg text-indigo-600">Nível 2: Compreensão</h3>
-                        <p class="text-sm text-slate-600 mt-2">Sintetizar os elementos da percepção para entender como eles impactam seus objetivos. O que isso significa?</p>
-                    </div>
-                    <div class="text-2xl text-indigo-500 hidden md:block">&rarr;</div>
-                    <div class="sa-level-card border-t-4 border-purple-500 p-4 rounded-md shadow-md bg-white w-full md:w-1/3">
-                        <h3 class="font-bold text-lg text-purple-600">Nível 3: Projeção</h3>
-                        <p class="text-sm text-slate-600 mt-2">Projetar as ações futuras dos elementos no ambiente. O que pode acontecer a seguir?</p>
+            <!-- SUMMARY SECTION -->
+            <section id="summary" class="no-print">
+                <h2 class="section-title">2. Resumo da Prontidão</h2>
+                <div class="summary-card">
+                    <p id="summary-text" class="summary-text" aria-live="polite">
+                        Complete o checklist para gerar um resumo visual do seu nível de prontidão para o voo.
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="saRadarChart" aria-label="Gráfico radar de prontidão" role="img"></canvas>
                     </div>
                 </div>
             </section>
 
-            <footer class="no-print text-center mt-16 pt-8 border-t border-slate-200">
-                <p class="text-slate-600">Esta ferramenta é uma representação interativa da pesquisa conduzida por</p>
-                <p class="text-slate-600"><strong>Matheus Guerra</strong></p>
-                <p class="text-sm text-slate-500 mt-2">Aviation Safety M.Sc.</p>
-                <p class="text-sm text-slate-500">Instituto Tecnológico de Aeronáutica (ITA) - 2025</p>
+            <!-- DASHBOARD SECTION -->
+            <section id="dashboard" class="no-print">
+                <h2 class="section-title">Dashboard de Missões</h2>
+
+                <div class="dashboard-grid">
+                    <div class="kpi-card total">
+                        <p class="kpi-label">Total de Missões</p>
+                        <h3 id="total-missions" class="kpi-value">0</h3>
+                    </div>
+                    <div class="kpi-card high">
+                        <p class="kpi-label">Alertas (Alto)</p>
+                        <h3 id="high-risk-count" class="kpi-value">0</h3>
+                    </div>
+                    <div class="kpi-card mid">
+                        <p class="kpi-label">Atenção (Médio)</p>
+                        <h3 id="mid-risk-count" class="kpi-value">0</h3>
+                    </div>
+                    <div class="kpi-card low">
+                        <p class="kpi-label">Normal (Baixo)</p>
+                        <h3 id="low-risk-count" class="kpi-value">0</h3>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Distribuição de Risco Operacional</h3>
+                    <div class="donut-container">
+                        <canvas id="riskDistChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- HISTORY SECTION -->
+            <section id="history" class="no-print">
+                <h2 class="section-title">3. Histórico de Missões</h2>
+                <div class="history-card">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Risco</th>
+                                <th>Scores (S|M|E|R)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SA INFO SECTION -->
+            <section id="intro" class="no-print">
+                <h2 class="section-title">4. O que é Consciência Situacional?</h2>
+                <div class="info-section">
+                    <p>
+                        A Consciência Situacional (SA) é a percepção dos elementos no ambiente, a compreensão de seu significado e a projeção de seu status no futuro próximo. É um pilar fundamental para operações seguras em aviação agrícola.
+                    </p>
+                    <div class="sa-levels">
+                        <div class="sa-card level-1">
+                            <h3>Nível 1: Percepção</h3>
+                            <p>Identificar o status, atributos e dinâmicas dos elementos relevantes no ambiente. O que está acontecendo agora?</p>
+                        </div>
+                        <div class="sa-card level-2">
+                            <h3>Nível 2: Compreensão</h3>
+                            <p>Sintetizar os elementos da percepção para entender como eles impactam seus objetivos. O que isso significa?</p>
+                        </div>
+                        <div class="sa-card level-3">
+                            <h3>Nível 3: Projeção</h3>
+                            <p>Projetar as ações futuras dos elementos no ambiente. O que pode acontecer a seguir?</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FOOTER -->
+            <footer class="no-print">
+                <p>Esta ferramenta é uma representação interativa da pesquisa conduzida por</p>
+                <p><strong>Matheus Guerra</strong></p>
+                <p>Aviation Safety M.Sc.</p>
+                <p>Instituto Tecnológico de Aeronáutica (ITA) - 2025</p>
             </footer>
         </main>
     </div>
 
     <script>
-        // Data (cleaned, no truncations). Keep text content trusted in this repo.
+        // ============================================
+        // CHECKLIST DATA - All 20 items preserved
+        // ============================================
         const checklistData = [
             {
                 category: 'Health Check',
                 id: 'health',
                 title: 'Saúde do Piloto',
+                icon: '🫀',
                 items: [
                     { id: 'health-1', text: 'Desjejum adequado?', info: 'Uma nutrição adequada é crucial para a função cognitiva e para evitar hipoglicemia durante o voo.' },
                     { id: 'health-2', text: 'Água potável a bordo?', info: 'A hidratação mantém o desempenho físico e mental, prevenindo os efeitos da desidratação.' },
@@ -166,6 +921,7 @@
                 category: 'Climate Check',
                 id: 'climate',
                 title: 'Meteorologia',
+                icon: '🌤️',
                 items: [
                     { id: 'climate-1', text: 'Temperatura adequada?', info: 'Temperaturas extremas afetam o desempenho do piloto e da aeronave e podem alterar a evaporação e a deriva.' },
                     { id: 'climate-2', text: 'Umidade relativa adequada?', info: 'A umidade influencia a taxa de evaporação das gotas, afetando a eficácia e a deriva.' },
@@ -178,6 +934,7 @@
                 category: 'Envelope Check',
                 id: 'envelope',
                 title: 'Envelope de Aplicação',
+                icon: '✈️',
                 items: [
                     { id: 'envelope-1', text: 'Altura de voo verificada?', info: 'Manter a altura correta é crítico para deposição adequada e redução de deriva.' },
                     { id: 'envelope-2', text: 'Bicos de pulverização verificados e limpos?', info: 'Bicos corretos e limpos garantem o padrão de pulverização desejado.' },
@@ -190,6 +947,7 @@
                 category: 'Risk Management Check',
                 id: 'risk',
                 title: 'Gerenciamento de Risco',
+                icon: '⚠️',
                 items: [
                     { id: 'risk-1', text: 'Produto utilizado com toxicidade conhecida?', info: 'Conheça a toxicidade e riscos do produto para planejamento de ações de mitigação.' },
                     { id: 'risk-2', text: 'Equipe treinada para contramedidas?', info: 'A prontidão da equipe de solo para agir em emergências de exposição é essencial.' },
@@ -200,7 +958,9 @@
             }
         ];
 
-        // Application state and persistence
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
         const STORAGE_KEY = 'saChecklistState:v1';
         const defaultState = {
             itemStates: {},
@@ -209,6 +969,7 @@
 
         let state = loadState();
         let saRadarChart = null;
+        let riskChart = null;
 
         function ensureStateShape() {
             checklistData.forEach(cat => {
@@ -237,75 +998,80 @@
             return JSON.parse(JSON.stringify(defaultState));
         }
 
+        // ============================================
+        // UI CREATION
+        // ============================================
         function createCategoryElement(category) {
             const container = document.createElement('div');
-            container.className = 'bg-white rounded-lg shadow-sm border border-slate-200';
+            container.className = 'category-card';
 
             const header = document.createElement('div');
-            header.className = 'p-4 bg-slate-100 border-b border-slate-200';
+            header.className = `category-header ${category.id}`;
 
             const titleDiv = document.createElement('div');
-            titleDiv.className = 'flex justify-between items-center';
+            titleDiv.className = 'category-title';
 
-            const title = document.createElement('h3');
-            title.className = 'text-lg font-bold text-slate-800';
+            const icon = document.createElement('span');
+            icon.className = 'category-icon';
+            icon.textContent = category.icon;
+            icon.setAttribute('aria-hidden', 'true');
+
+            const title = document.createElement('span');
             title.textContent = category.title;
+
+            titleDiv.appendChild(icon);
+            titleDiv.appendChild(title);
 
             const progress = document.createElement('span');
             progress.id = `progress-${category.id}`;
-            progress.className = 'text-sm font-semibold text-slate-500';
+            progress.className = 'category-progress';
             progress.textContent = '0 / ' + category.items.length;
 
-            titleDiv.appendChild(title);
-            titleDiv.appendChild(progress);
             header.appendChild(titleDiv);
+            header.appendChild(progress);
             container.appendChild(header);
 
             const content = document.createElement('div');
-            content.className = 'p-2';
-
-            const list = document.createElement('div');
-            list.className = 'divide-y divide-slate-200';
+            content.className = 'category-content';
 
             category.items.forEach(item => {
                 const itemEl = createItemElement(item, category.id);
-                list.appendChild(itemEl);
+                content.appendChild(itemEl);
             });
 
-            content.appendChild(list);
             container.appendChild(content);
-
             return container;
         }
 
         function createItemElement(item, categoryId) {
             const container = document.createElement('div');
             container.id = `item-container-${item.id}`;
-            container.className = 'checklist-item-container p-4 border-l-4';
+            container.className = 'checklist-item';
 
+            // Main button
             const rowBtn = document.createElement('button');
             rowBtn.type = 'button';
-            rowBtn.className = 'w-full flex justify-between items-center text-left';
+            rowBtn.className = 'item-button';
             rowBtn.dataset.itemid = item.id;
             rowBtn.dataset.categoryid = categoryId;
             rowBtn.setAttribute('aria-pressed', state.itemStates[item.id] === 'checked' ? 'true' : 'false');
 
             const labelSpan = document.createElement('span');
-            labelSpan.className = 'text-slate-700 font-medium';
+            labelSpan.className = 'item-text';
             labelSpan.textContent = item.text;
 
             const statusSpan = document.createElement('span');
-            statusSpan.className = 'status-icon text-slate-400 text-xl';
+            statusSpan.className = 'status-badge';
             statusSpan.setAttribute('aria-hidden', 'true');
             statusSpan.textContent = stateSymbol(state.itemStates[item.id]);
 
             rowBtn.appendChild(labelSpan);
             rowBtn.appendChild(statusSpan);
 
+            // Info panel
             const infoPanel = document.createElement('div');
-            infoPanel.className = 'info-panel mt-2 px-2 text-sm text-sky-800 bg-sky-50 rounded';
+            infoPanel.className = 'info-panel';
             const infoP = document.createElement('p');
-            infoP.className = 'text-justify';
             const strong = document.createElement('strong');
             strong.textContent = 'Justificativa: ';
             infoP.appendChild(strong);
@@ -314,20 +1080,21 @@
             infoP.appendChild(infoText);
             infoPanel.appendChild(infoP);
 
+            // Comment section
             const commentWrap = document.createElement('div');
-            commentWrap.className = 'comment-field mt-4 px-2';
+            commentWrap.className = 'comment-section';
 
             const commentLabel = document.createElement('label');
-            commentLabel.className = 'block text-sm font-medium text-slate-700 mb-1';
+            commentLabel.className = 'comment-label';
             commentLabel.setAttribute('for', `comment-${item.id}`);
             commentLabel.textContent = 'Comentários:';
 
             const textarea = document.createElement('textarea');
             textarea.id = `comment-${item.id}`;
-            textarea.placeholder = 'Adicionar comentário...';
-            textarea.className = 'w-full p-2 border border-slate-300 rounded-md text-sm focus:border-blue-500 focus:ring focus:ring-blue-200';
+            textarea.placeholder = 'Adicionar observação sobre este item...';
+            textarea.className = 'comment-textarea';
             textarea.value = state.comments[item.id] || '';
-            textarea.rows = 3;
+            textarea.rows = 2;
             textarea.dataset.itemid = item.id;
 
             commentWrap.appendChild(commentLabel);
@@ -337,8 +1104,9 @@
             container.appendChild(infoPanel);
             container.appendChild(commentWrap);
 
-            applyVisualState(container, statusSpan, infoPanel, commentWrap, state.itemStates[item.id]);
+            applyVisualState(container, statusSpan, state.itemStates[item.id]);
 
+            // Event listeners
             rowBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -354,76 +1122,40 @@
         }
 
         function stateSymbol(s) {
-            if (s === 'checked') return '✅';
-            if (s === 'negative') return '❌';
-            return '◯';
+            if (s === 'checked') return '✓';
+            if (s === 'negative') return '✗';
+            return '○';
         }
 
-        function applyVisualState(container, statusSpan, infoPanel, commentWrap, stateValue) {
+        function applyVisualState(container, statusSpan, stateValue) {
             container.classList.remove('checked', 'negative');
-            statusSpan.className = 'status-icon text-xl';
+
             if (stateValue === 'checked') {
                 container.classList.add('checked');
-                statusSpan.textContent = '✅';
-                statusSpan.classList.add('text-green-500');
+                statusSpan.textContent = '✓';
             } else if (stateValue === 'negative') {
                 container.classList.add('negative');
-                statusSpan.textContent = '❌';
-                statusSpan.classList.add('text-red-500');
+                statusSpan.textContent = '✗';
             } else {
-                statusSpan.textContent = '◯';
-                statusSpan.classList.add('text-slate-400');
+                statusSpan.textContent = '○';
             }
 
             const rowBtn = container.querySelector('button[data-itemid]');
             if (rowBtn) rowBtn.setAttribute('aria-pressed', stateValue === 'checked' ? 'true' : 'false');
-
-            const ta = container.querySelector('textarea');
-            if (ta) ta.value = state.comments[container.id.replace('item-container-', '')] || '';
         }
 
         function updateItemUI(itemId) {
             const container = document.getElementById(`item-container-${itemId}`);
             if (!container) return;
-            const statusSpan = container.querySelector('.status-icon');
-            const infoPanel = container.querySelector('.info-panel');
-            const commentWrap = container.querySelector('.comment-field');
-            applyVisualState(container, statusSpan, infoPanel, commentWrap, state.itemStates[itemId]);
+            const statusSpan = container.querySelector('.status-badge');
+            applyVisualState(container, statusSpan, state.itemStates[itemId]);
             const ta = container.querySelector('textarea');
             if (ta) ta.value = state.comments[itemId] || '';
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            ensureStateShape();
-
-            const accordionContainer = document.getElementById('accordion-container');
-            accordionContainer.innerHTML = '';
-
-            checklistData.forEach(cat => {
-                const catEl = createCategoryElement(cat);
-                accordionContainer.appendChild(catEl);
-            });
-
-            document.getElementById('print-button').addEventListener('click', () => window.print());
-
-            document.getElementById('reset-button').addEventListener('click', () => {
-                const confirmed = window.confirm('Redefinir o checklist irá limpar todas as seleções e comentários. Deseja continuar?');
-                if (!confirmed) return;
-                state = JSON.parse(JSON.stringify(defaultState));
-                ensureStateShape();
-                saveState();
-
-                checklistData.forEach(cat => {
-                    cat.items.forEach(item => updateItemUI(item.id));
-                });
-
-                updateAllScoresAndUI();
-            });
-
-            initializeChart();
-            updateAllScoresAndUI();
-        });
-
+        // ============================================
+        // STATE TOGGLING
+        // ============================================
         function toggleItemState(itemId) {
             const current = state.itemStates[itemId] || 'unmarked';
             const next = current === 'unmarked' ? 'checked' : (current === 'checked' ? 'negative' : 'unmarked');
@@ -438,6 +1170,9 @@
             saveState();
         }
 
+        // ============================================
+        // SCORES & UI UPDATE
+        // ============================================
         function updateAllScoresAndUI() {
             checklistData.forEach(cat => {
                 const total = cat.items.length;
@@ -446,11 +1181,9 @@
                 if (progressSpan) {
                     progressSpan.textContent = `${checkedCount} / ${total}`;
                     if (checkedCount === total) {
-                        progressSpan.classList.remove('text-slate-500');
-                        progressSpan.classList.add('text-green-600');
+                        progressSpan.classList.add('complete');
                     } else {
-                        progressSpan.classList.add('text-slate-500');
-                        progressSpan.classList.remove('text-green-600');
+                        progressSpan.classList.remove('complete');
                     }
                 }
             });
@@ -464,17 +1197,20 @@
             const summary = document.getElementById('summary-text');
             if (totalChecked + totalNegative === totalItems && totalItems > 0) {
                 if (totalNegative === 0) {
-                    summary.textContent = "Checklist completo! Você demonstrou um excelente nível de consciência situacional e preparação. Continue mantendo estas práticas.";
+                    summary.textContent = "✅ Checklist completo! Você demonstrou um excelente nível de consciência situacional e preparação. Continue mantendo estas práticas.";
                 } else {
-                    summary.textContent = "Checklist completo com observações. Revise os itens marcados como negativos e tome as ações necessárias antes do voo.";
+                    summary.textContent = "⚠️ Checklist completo com observações. Revise os itens marcados como negativos e tome as ações necessárias antes do voo.";
                 }
             } else if (totalChecked + totalNegative > 0) {
-                summary.textContent = "Continue preenchendo o checklist. Cada item verificado aumenta a segurança e a eficácia da sua operação.";
+                summary.textContent = "📋 Continue preenchendo o checklist. Cada item verificado aumenta a segurança e a eficácia da sua operação.";
             } else {
-                summary.textContent = "Complete o checklist para gerar um resumo visual do seu nível de prontidão para o voo. Este gráfico ajuda a identificar áreas para melhoria.";
+                summary.textContent = "Complete o checklist para gerar um resumo visual do seu nível de prontidão para o voo.";
             }
         }
 
+        // ============================================
+        // CHART INITIALIZATION
+        // ============================================
         function initializeChart() {
             const ctx = document.getElementById('saRadarChart').getContext('2d');
             const labels = checklistData.map(c => c.title);
@@ -484,12 +1220,16 @@
                     label: 'Nível de Prontidão',
                     data: labels.map(() => 0),
                     fill: true,
-                    backgroundColor: 'rgba(59, 130, 246, 0.18)',
-                    borderColor: 'rgb(59, 130, 246)',
-                    pointBackgroundColor: 'rgb(59, 130, 246)',
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgb(59, 130, 246)'
+                    backgroundColor: 'rgba(59, 130, 246, 0.25)',
+                    borderColor: '#1a1a1a',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#3B82F6',
+                    pointBorderColor: '#1a1a1a',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointHoverBackgroundColor: '#FFE135',
+                    pointHoverBorderColor: '#1a1a1a'
                 }]
             };
 
@@ -500,12 +1240,33 @@
                     maintainAspectRatio: false,
                     scales: {
                         r: {
-                            angleLines: { display: true },
+                            angleLines: {
+                                display: true,
+                                color: '#1a1a1a',
+                                lineWidth: 1
+                            },
+                            grid: {
+                                color: '#1a1a1a',
+                                lineWidth: 1
+                            },
+                            pointLabels: {
+                                font: {
+                                    family: "'Space Grotesk', sans-serif",
+                                    size: 12,
+                                    weight: '700'
+                                },
+                                color: '#1a1a1a'
+                            },
                             suggestedMin: 0,
                             suggestedMax: 100,
                             ticks: {
                                 stepSize: 25,
-                                backdropColor: 'rgba(255,255,255,0.75)',
+                                backdropColor: 'rgba(255, 254, 240, 0.9)',
+                                color: '#1a1a1a',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 10
+                                },
                                 callback: function(value) { return value + '%'; }
                             }
                         }
@@ -513,9 +1274,21 @@
                     plugins: {
                         legend: { display: false },
                         tooltip: {
+                            backgroundColor: '#1a1a1a',
+                            titleFont: {
+                                family: "'Space Grotesk', sans-serif",
+                                size: 14,
+                                weight: '700'
+                            },
+                            bodyFont: {
+                                family: "'JetBrains Mono', monospace",
+                                size: 12
+                            },
+                            padding: 12,
+                            cornerRadius: 8,
                             callbacks: {
                                 label: function(context) {
-                                    return context.dataset.label + ': ' + context.formattedValue + '%' + ' - ' + context.chart.data.labels[context.dataIndex];
+                                    return context.formattedValue + '%';
                                 }
                             }
                         }
@@ -538,105 +1311,167 @@
             saRadarChart.update();
         }
 
-document.getElementById('save-db-button').addEventListener('click', async () => {
-    // 1. Extração dos Scores (0 a 5) baseada nos itens marcados como 'checked'
-    const getScore = (catId) => checklistData.find(c => c.id === catId).items.filter(it => state.itemStates[it.id] === 'checked').length;
+        // ============================================
+        // SAVE TO DATABASE
+        // ============================================
+        document.getElementById('save-db-button').addEventListener('click', async () => {
+            const getScore = (catId) => checklistData.find(c => c.id === catId).items.filter(it => state.itemStates[it.id] === 'checked').length;
 
-    const payload = {
-        pilotName: "Matheus Guerra", // Poderia ser um campo de input
-        healthScore: getScore('health'),    // Saúde
-        weatherScore: getScore('climate'),  // Meteorologia
-        aircraftScore: getScore('envelope'),// Envelope (Aeronave)
-        missionScore: getScore('risk'),     // Gerenciamento de Risco
-        comments: "Registro automático via interface web."
-    };
+            const payload = {
+                pilotName: "Matheus Guerra",
+                healthScore: getScore('health'),
+                weatherScore: getScore('climate'),
+                aircraftScore: getScore('envelope'),
+                missionScore: getScore('risk'),
+                comments: "Registro automático via interface web."
+            };
 
-    try {
-        const response = await fetch("http://localhost:8081/api/v1/safety/check", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            try {
+                const response = await fetch("http://localhost:8081/api/v1/safety/check", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`✅ Sucesso! Checklist salvo no banco de dados.\nNível da prontidão no apoio à SA calculada pela matriz: ${result.riskLevel}`);
+                    carregarHistorico();
+                } else {
+                    alert("❌ Erro ao salvar: A API respondeu com erro.");
+                }
+            } catch (error) {
+                console.error("Erro de conexão:", error);
+                alert("❌ Erro de conexão: Certifique-se que o backend Java está rodando na porta 8081.");
+            }
         });
 
-        if (response.ok) {
-            const result = await response.json();
-            alert(`✅ Sucesso! Checklist salvo no banco de dados.\nNível da prontidão no apoio à SA calculada pela matriz: ${result.riskLevel}`);
-        } else {
-            alert("❌ Erro ao salvar: A API respondeu com erro.");
+        // ============================================
+        // LOAD HISTORY
+        // ============================================
+        async function carregarHistorico() {
+            try {
+                const response = await fetch("http://localhost:8081/api/v1/safety/history");
+                const dados = await response.json();
+
+                let alto = 0, medio = 0, baixo = 0;
+                const tbody = document.getElementById('history-table-body');
+                tbody.innerHTML = '';
+
+                dados.reverse().forEach(v => {
+                    if (v.riskLevel === 'ALTO') alto++;
+                    else if (v.riskLevel === 'MÉDIO') medio++;
+                    else baixo++;
+
+                    const data = new Date(v.dateTime).toLocaleString('pt-BR');
+                    const riskClass = v.riskLevel === 'ALTO' ? 'alto' : v.riskLevel === 'MÉDIO' ? 'medio' : 'baixo';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${data}</td>
+                            <td><span class="risk-badge ${riskClass}">${v.riskLevel}</span></td>
+                            <td class="scores-display">${v.healthScore} | ${v.weatherScore} | ${v.aircraftScore} | ${v.missionScore}</td>
+                        </tr>`;
+                });
+
+                document.getElementById('total-missions').innerText = dados.length;
+                document.getElementById('high-risk-count').innerText = alto;
+                document.getElementById('mid-risk-count').innerText = medio;
+                document.getElementById('low-risk-count').innerText = baixo;
+
+                renderizarGraficoPizza(baixo, medio, alto);
+
+            } catch (e) {
+                console.error("Erro ao carregar Dashboard:", e);
+            }
         }
-    } catch (error) {
-        console.error("Erro de conexão:", error);
-        alert("❌ Erro de conexão: Certifique-se que o backend Java está rodando na porta 8081.");
-    }
-});
-        let riskChart; // Variável global para evitar duplicidade de gráficos
 
-async function carregarHistorico() {
-    try {
-        const response = await fetch("http://localhost:8081/api/v1/safety/history");
-        const dados = await response.json();
-        
-        // Inicializa contadores para o Dashboard
-        let alto = 0, medio = 0, baixo = 0;
-        const tbody = document.getElementById('history-table-body');
-        tbody.innerHTML = ''; 
+        function renderizarGraficoPizza(b, m, a) {
+            const ctx = document.getElementById('riskDistChart').getContext('2d');
+            if (riskChart) riskChart.destroy();
 
-        // Processa os dados e popula a tabela
-        dados.reverse().forEach(v => {
-            // Contagem para o Dashboard
-            if(v.riskLevel === 'ALTO') alto++;
-            else if(v.riskLevel === 'MÉDIO') medio++;
-            else baixo++;
+            riskChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Baixo', 'Médio', 'Alto'],
+                    datasets: [{
+                        data: [b, m, a],
+                        backgroundColor: ['#10B981', '#F97316', '#EF4444'],
+                        borderColor: '#1a1a1a',
+                        borderWidth: 3,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    family: "'Space Grotesk', sans-serif",
+                                    size: 12,
+                                    weight: '700'
+                                },
+                                color: '#1a1a1a',
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'rectRounded'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#1a1a1a',
+                            titleFont: {
+                                family: "'Space Grotesk', sans-serif",
+                                size: 14,
+                                weight: '700'
+                            },
+                            bodyFont: {
+                                family: "'JetBrains Mono', monospace",
+                                size: 12
+                            },
+                            padding: 12,
+                            cornerRadius: 8
+                        }
+                    }
+                }
+            });
+        }
 
-            const data = new Date(v.dateTime).toLocaleString('pt-BR');
-            const cor = v.riskLevel === 'ALTO' ? 'text-red-600' : 
-                        v.riskLevel === 'MÉDIO' ? 'text-yellow-600' : 'text-green-600';
-            
-            tbody.innerHTML += `
-                <tr class="hover:bg-slate-50 border-b border-slate-100">
-                    <td class="p-4">${data}</td>
-                    <td class="p-4 font-bold ${cor}">${v.riskLevel}</td>
-                    <td class="p-4 text-center text-slate-500">
-                        ${v.healthScore} | ${v.weatherScore} | ${v.aircraftScore} | ${v.missionScore}
-                    </td>
-                </tr>`;
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            ensureStateShape();
+
+            const accordionContainer = document.getElementById('accordion-container');
+            accordionContainer.innerHTML = '';
+
+            checklistData.forEach(cat => {
+                const catEl = createCategoryElement(cat);
+                accordionContainer.appendChild(catEl);
+            });
+
+            document.getElementById('print-button').addEventListener('click', () => window.print());
+
+            document.getElementById('reset-button').addEventListener('click', () => {
+                const confirmed = window.confirm('⚠️ Redefinir o checklist irá limpar todas as seleções e comentários. Deseja continuar?');
+                if (!confirmed) return;
+                state = JSON.parse(JSON.stringify(defaultState));
+                ensureStateShape();
+                saveState();
+
+                checklistData.forEach(cat => {
+                    cat.items.forEach(item => updateItemUI(item.id));
+                });
+
+                updateAllScoresAndUI();
+            });
+
+            initializeChart();
+            updateAllScoresAndUI();
+            carregarHistorico();
         });
-
-        // Atualiza os cartões numéricos no Dashboard
-        document.getElementById('total-missions').innerText = dados.length;
-        document.getElementById('high-risk-count').innerText = alto;
-        document.getElementById('mid-risk-count').innerText = medio;
-        document.getElementById('low-risk-count').innerText = baixo;
-
-        // Desenha o gráfico de pizza (Doughnut)
-        renderizarGraficoPizza(baixo, medio, alto);
-
-    } catch (e) {
-        console.error("Erro ao carregar Dashboard:", e);
-    }
-}
-
-// Função auxiliar para o gráfico do Dashboard
-function renderizarGraficoPizza(b, m, a) {
-    const ctx = document.getElementById('riskDistChart').getContext('2d');
-    if (riskChart) riskChart.destroy(); // Limpa o gráfico anterior
-
-    riskChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Baixo', 'Médio', 'Alto'],
-            datasets: [{
-                data: [b, m, a],
-                backgroundColor: ['#16a34a', '#ca8a04', '#dc2626'],
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } }
-        }
-    });
-}
     </script>
 </body>
 </html>
